@@ -51,6 +51,10 @@ module "instance" {
   instance_name     = "${var.environment}-web"
   public_key        = var.public_key
   environment       = var.environment
+
+  user_data = templatefile("${path.module}/templates/user_data.sh.tftpl", {
+    html_content = file("${path.module}/assets/index.html")
+  })
 }
 
 

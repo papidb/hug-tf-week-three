@@ -20,6 +20,12 @@ variable "public_key" {
   default     = ""
 }
 
+variable "user_data" {
+  type        = string
+  description = "Cloud-init/user_data script to run at instance launch."
+  default     = null
+}
+
 variable "instance_type" {
   type        = string
   description = "instance type of the instance"

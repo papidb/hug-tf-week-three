@@ -40,26 +40,5 @@ resource "aws_instance" "main_instance" {
     Environment = var.environment
   }
 
-  user_data = <<-EOF
-  #!/bin/bash
-  set -euxo pipefail
-
-  apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
-
-  cat > /var/www/html/index.html <<'HTML'
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <title>Daniel Benjamin</title>
-    </head>
-    <body>
-      <h1>Daniel Benjamin</h1>
-      <h2>HUG Lagos/Ibadan Terraform Challenge</h2>
-    </body>
-  </html>
-  HTML
-
-  systemctl enable --now nginx
-  EOF
+  user_data = var.user_data
 }
