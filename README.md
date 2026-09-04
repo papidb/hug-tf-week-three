@@ -6,23 +6,31 @@ least-privilege security groups and remote state.
 
 ## Architecture
 
-```
-                          Internet
-                             |
-                     [Internet Gateway]
-                             |
-        VPC 10.0.0.0/16      |
-        ┌────────────────────┼─────────────────────────────┐
-        │  Public subnet (10.0.0.0/24)                      │
-        │    - EC2 (Nginx)  <— HTTP:80 from internet        │
-        │                   <— SSH:22 from admin IP only    │
-        │    - NAT Gateway (+ EIP)                          │
-        │                                                   │
-        │  Private subnets (10.0.1.0/24, 10.0.2.0/24)       │
-        │    - RDS PostgreSQL                                │
-        │        <— 5432 from compute SG only               │
-        │        outbound —> NAT Gateway                     │
-        └───────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    internet([Internet])
+    admin([Admin IP])
+
+    subgraph vpc["VPC 10.0.0.0/16"]
+        igw[Internet Gateway]
+
+        subgraph public["Public subnet 10.0.0.0/24"]
+            ec2["EC2 · Nginx"]
+            nat[NAT Gateway + EIP]
+        end
+
+        subgraph private["Private subnets 10.0.1.0/24 · 10.0.2.0/24"]
+            rds[("RDS PostgreSQL")]
+        end
+    end
+
+    internet -->|HTTP :80| ec2
+    admin -->|SSH :22| ec2
+    internet <--> igw
+    igw <--> public
+    ec2 -->|":5432 (compute SG only)"| rds
+    rds -->|outbound| nat
+    nat --> igw
 ```
 
 - **Public route table** routes `0.0.0.0/0` to the Internet Gateway.
