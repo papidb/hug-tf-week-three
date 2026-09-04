@@ -36,7 +36,8 @@ plan: fmt validate
 	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
 	test -f "$(SSH_PUBLIC_KEY_FILE)" || { echo "SSH public key not found at $(SSH_PUBLIC_KEY_FILE)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
-	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
+	cidr=$$(echo "$$ip" | awk -F. '{print $$1"."$$2"."$$3".0/24"}'); \
+	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$cidr" TF_VAR_environment="$(ENVIRONMENT)" \
 	TF_VAR_public_key="$$(cat $(SSH_PUBLIC_KEY_FILE))" \
 	$(TERRAFORM) plan -out=tfplan
 
@@ -56,7 +57,8 @@ destroy:
 	@set -eu; \
 	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
-	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
+	cidr=$$(echo "$$ip" | awk -F. '{print $$1"."$$2"."$$3".0/24"}'); \
+	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$cidr" TF_VAR_environment="$(ENVIRONMENT)" \
 	TF_VAR_public_key="$$(cat $(SSH_PUBLIC_KEY_FILE) 2>/dev/null || true)" \
 	$(TERRAFORM) destroy
 

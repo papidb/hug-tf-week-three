@@ -78,7 +78,7 @@ Key variables (see `main.tf` for the full list and defaults):
 | `db_allocated_storage` | `20` | RDS storage (GiB) |
 | `db_port` | `5432` | Database port |
 | `db_password` | — | **Required**, provided via `.env` |
-| `ssh_cidr` | — | Set automatically by the Makefile to your current IP |
+| `ssh_cidr` | — | Set automatically by the Makefile to your current IP's `/24` |
 | `public_key` | `""` | SSH public key; the Makefile reads it from `SSH_PUBLIC_KEY_FILE` |
 
 ## Deployment
@@ -103,7 +103,10 @@ make verify
 ```
 
 `make plan` runs `terraform fmt` and `validate` first, detects your public IP
-via `checkip.amazonaws.com`, and writes the SSH rule for that `/32` only.
+via `checkip.amazonaws.com`, and writes the SSH rule for the surrounding `/24`
+block. A `/24` is used rather than a single `/32` because many ISPs rotate the
+client IP within their block between requests; scoping to the `/24` keeps SSH
+usable without opening it to the whole internet.
 
 ## SSH access
 
