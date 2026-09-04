@@ -10,7 +10,8 @@ variable "security_group_id" {
 
 variable "ami" {
   type        = string
-  description = "ami of the instance"
+  description = "AMI ID for the instance. Leave empty to use the latest Ubuntu 22.04 LTS."
+  default     = ""
 }
 
 variable "instance_type" {

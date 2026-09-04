@@ -37,7 +37,6 @@ module "instance" {
 
   public_subnet_id  = module.networking.public_subnet_id
   security_group_id = module.security_group.security_group_id
-  ami               = "ami-03ceeebf93c41fdae"
   instance_type     = "t3.micro"
   instance_name     = "main_instance"
   environment       = var.environment
