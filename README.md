@@ -29,7 +29,7 @@ flowchart TB
     internet <--> igw
     igw <--> public
     ec2 -->|":5432 (compute SG only)"| rds
-    rds -->|outbound| nat
+    private -.->|"route table 0.0.0.0/0"| nat
     nat --> igw
 ```
 
@@ -175,6 +175,13 @@ make destroy-all      # both, in order
 State is stored in an S3 bucket (versioned, encrypted, native lockfile) created
 by the `bootstrap/` configuration. The backend `key` is
 `hug-tf-week-three/terraform.tfstate`.
+
+> **Single-environment scope.** `ENVIRONMENT` changes resource names/tags, but
+> the backend `key` is fixed, so all environments share one state file. Switching
+> `dev` → `staging` therefore mutates the same state rather than creating an
+> independent environment. That is intentional for this single-environment
+> challenge; separate environments would use separate backend keys, Terraform
+> workspaces, or root configurations.
 
 ### Database password and state (lab tradeoff)
 
