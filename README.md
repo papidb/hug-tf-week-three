@@ -196,12 +196,26 @@ Secrets Manager with `manage_master_user_password = true` on the `aws_db_instanc
 Terraform). That adds Secrets Manager cost and IAM requirements, so it is left
 out here.
 
+## Screenshots
+
+### VPC
+![VPC](docs/screenshots/vpc.png)
+
+### EC2 instance running
+![EC2 instance running](docs/screenshots/ec2-instance.png)
+
+### RDS database running
+![RDS database running](docs/screenshots/rds-database.png)
+
+### Webpage
+![Webpage](docs/screenshots/webpage.png)
+
 ## Deliverables checklist
 
-- [ ] Terraform code (this repository)
-- [ ] README with deployment instructions (this file)
-- [ ] Screenshot of the VPC
-- [ ] Screenshot of the EC2 instance running
-- [ ] Screenshot of the RDS database running
-- [ ] Screenshot of the webpage (`http://<instance_public_ip>`)
+- [x] Terraform code (this repository)
+- [x] README with deployment instructions (this file)
+- [x] [Screenshot of the VPC](docs/screenshots/vpc.png)
+- [x] [Screenshot of the EC2 instance running](docs/screenshots/ec2-instance.png)
+- [x] [Screenshot of the RDS database running](docs/screenshots/rds-database.png)
+- [x] [Screenshot of the webpage](docs/screenshots/webpage.png)
 - [ ] LinkedIn post tagging HUG Lagos and HUG Ibadan
