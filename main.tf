@@ -49,6 +49,7 @@ module "instance" {
   security_group_id = module.security_group.compute_security_group_id
   instance_type     = var.instance_type
   instance_name     = "${var.environment}-web"
+  public_key        = var.public_key
   environment       = var.environment
 }
 
@@ -125,6 +126,12 @@ variable "db_password" {
 variable "ssh_cidr" {
   description = "Public IPv4 CIDR permitted to connect over SSH"
   type        = string
+}
+
+variable "public_key" {
+  description = "SSH public key material for the web server. Leave empty to launch without a key pair."
+  type        = string
+  default     = ""
 }
 
 variable "environment" {

@@ -62,6 +62,9 @@ ENVIRONMENT=dev
 TF_VAR_db_password=<a-strong-password>
 ```
 
+The Makefile reads your SSH public key from `~/.ssh/id_ed25519.pub` by default
+(override with `SSH_PUBLIC_KEY_FILE=/path/to/key.pub`).
+
 Key variables (see `main.tf` for the full list and defaults):
 
 | Variable | Default | Description |
@@ -76,6 +79,7 @@ Key variables (see `main.tf` for the full list and defaults):
 | `db_port` | `5432` | Database port |
 | `db_password` | — | **Required**, provided via `.env` |
 | `ssh_cidr` | — | Set automatically by the Makefile to your current IP |
+| `public_key` | `""` | SSH public key; the Makefile reads it from `SSH_PUBLIC_KEY_FILE` |
 
 ## Deployment
 
@@ -100,6 +104,25 @@ make verify
 
 `make plan` runs `terraform fmt` and `validate` first, detects your public IP
 via `checkip.amazonaws.com`, and writes the SSH rule for that `/32` only.
+
+## SSH access
+
+The Makefile imports your public key (`~/.ssh/id_ed25519.pub` by default) as an
+EC2 key pair and attaches it to the instance. The compute security group permits
+`22/tcp` from your current IP only, so once applied you can connect with:
+
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@$(terraform output -raw instance_public_ip)
+```
+
+> **Note on best practice.** This project uses a classic SSH key pair with port
+> 22 open to a single IP because the assignment requires it. In production, the
+> industry-standard approach is **AWS Systems Manager (SSM) Session Manager**:
+> attach an IAM instance profile with `AmazonSSMManagedInstanceCore`, keep port
+> 22 **closed entirely**, and connect with `aws ssm start-session`. That gives
+> keyless, IAM-governed, fully audited access with no inbound SSH exposure and
+> no private keys to manage — the instance reaches the SSM endpoints outbound
+> via the NAT gateway. It is deliberately left out here to match the brief.
 
 ## Outputs
 

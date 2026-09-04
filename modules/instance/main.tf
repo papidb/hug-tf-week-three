@@ -13,9 +13,22 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+resource "aws_key_pair" "main" {
+  count = var.public_key != "" ? 1 : 0
+
+  key_name   = "${var.environment}-web-key"
+  public_key = var.public_key
+
+  tags = {
+    Name        = "${var.environment}-web-key"
+    Environment = var.environment
+  }
+}
+
 resource "aws_instance" "main_instance" {
   ami           = var.ami != "" ? var.ami : data.aws_ami.ubuntu.id
   instance_type = var.instance_type
+  key_name      = var.public_key != "" ? aws_key_pair.main[0].key_name : null
 
   subnet_id = var.public_subnet_id
   vpc_security_group_ids = [

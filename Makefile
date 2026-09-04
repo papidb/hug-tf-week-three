@@ -6,6 +6,7 @@ export
 AWS_PROFILE ?= terraform-lab
 ENVIRONMENT ?= dev
 TERRAFORM ?= terraform
+SSH_PUBLIC_KEY_FILE ?= $(HOME)/.ssh/id_ed25519.pub
 
 .PHONY: bootstrap-init bootstrap-apply backend-init setup fmt validate plan apply deploy verify destroy destroy-backend destroy-all
 
@@ -33,8 +34,10 @@ validate:
 plan: fmt validate
 	@set -eu; \
 	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
+	test -f "$(SSH_PUBLIC_KEY_FILE)" || { echo "SSH public key not found at $(SSH_PUBLIC_KEY_FILE)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
 	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
+	TF_VAR_public_key="$$(cat $(SSH_PUBLIC_KEY_FILE))" \
 	$(TERRAFORM) plan -out=tfplan
 
 apply:
@@ -54,6 +57,7 @@ destroy:
 	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
 	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
+	TF_VAR_public_key="$$(cat $(SSH_PUBLIC_KEY_FILE) 2>/dev/null || true)" \
 	$(TERRAFORM) destroy
 
 destroy-backend:

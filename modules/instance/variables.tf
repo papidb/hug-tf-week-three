@@ -14,6 +14,12 @@ variable "ami" {
   default     = ""
 }
 
+variable "public_key" {
+  type        = string
+  description = "SSH public key material. Leave empty to launch without a key pair."
+  default     = ""
+}
+
 variable "instance_type" {
   type        = string
   description = "instance type of the instance"
