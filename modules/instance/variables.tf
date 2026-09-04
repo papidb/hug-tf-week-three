@@ -28,7 +28,14 @@ variable "user_data" {
 
 variable "instance_type" {
   type        = string
-  description = "instance type of the instance"
+  description = "instance type of the instance (must be x86_64; the AMI is AMD64)"
+
+  validation {
+    # Reject ARM/Graviton families (e.g. a1, t4g, m6g, c7gn, r6gd, im4gn): they
+    # need an ARM64 AMI, but this module looks up an AMD64 (x86_64) image.
+    condition     = !can(regex("^(a1|[a-z]+[0-9]+g[a-z]*)\\.", var.instance_type))
+    error_message = "instance_type must be an x86_64 type. ARM/Graviton types (a1, *g, e.g. t4g.micro) require an ARM64 AMI."
+  }
 }
 
 variable "instance_name" {

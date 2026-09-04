@@ -35,7 +35,9 @@ flowchart TB
 
 - **Public route table** routes `0.0.0.0/0` to the Internet Gateway.
 - **Private route table** routes `0.0.0.0/0` to the NAT Gateway (egress only).
-- The database spans **two** private subnets (two AZs), as RDS requires.
+- The DB subnet group contains **two** private subnets in separate Availability
+  Zones (required by RDS). Because `multi_az = false`, the Single-AZ RDS instance
+  is placed in one of those subnets.
 
 ## Module layout
 
@@ -53,7 +55,9 @@ flowchart TB
 - **Compute SG**: inbound `80/tcp` from `0.0.0.0/0`; inbound `22/tcp` from your IP
   only (`ssh_cidr`); all outbound.
 - **Database SG**: inbound `5432/tcp` from the **compute SG** (source security
-  group, not a CIDR); all outbound. The DB is never publicly accessible.
+  group, not a CIDR); **no egress rules**. Security groups are stateful, so
+  responses to connections initiated by the compute instance are allowed without
+  an outbound rule. The DB is never publicly accessible.
 
 ## Prerequisites
 
@@ -72,6 +76,17 @@ TF_VAR_db_password=<a-strong-password>
 
 The Makefile reads your SSH public key from `~/.ssh/id_ed25519.pub` by default
 (override with `SSH_PUBLIC_KEY_FILE=/path/to/key.pub`).
+
+> **`.env` parsing caveat.** The Makefile loads `.env` via `-include`, so GNU
+> Make itself parses the file. Characters that are special to Make — `$`, `#`,
+> leading/trailing whitespace, backslashes — can be interpreted unexpectedly in a
+> password. If your password contains such characters, prefer exporting it in
+> your shell instead:
+>
+> ```bash
+> export TF_VAR_db_password='your-password'
+> make plan
+> ```
 
 Key variables (see `main.tf` for the full list and defaults):
 
@@ -120,20 +135,22 @@ usable without opening it to the whole internet.
 
 The Makefile imports your public key (`~/.ssh/id_ed25519.pub` by default) as an
 EC2 key pair and attaches it to the instance. The compute security group permits
-`22/tcp` from your current IP only, so once applied you can connect with:
+`22/tcp` from your current IP's `/24` block, so once applied you can connect with:
 
 ```bash
 ssh -i ~/.ssh/id_ed25519 ubuntu@$(terraform output -raw instance_public_ip)
 ```
 
 > **Note on best practice.** This project uses a classic SSH key pair with port
-> 22 open to a single IP because the assignment requires it. In production, the
-> industry-standard approach is **AWS Systems Manager (SSM) Session Manager**:
+> 22 open to a restricted CIDR because the assignment requires it. In production,
+> the industry-standard approach is **AWS Systems Manager (SSM) Session Manager**:
 > attach an IAM instance profile with `AmazonSSMManagedInstanceCore`, keep port
-> 22 **closed entirely**, and connect with `aws ssm start-session`. That gives
-> keyless, IAM-governed, fully audited access with no inbound SSH exposure and
-> no private keys to manage — the instance reaches the SSM endpoints outbound
-> via the NAT gateway. It is deliberately left out here to match the brief.
+> 22 **closed entirely**, install/enable the SSM agent, and connect with
+> `aws ssm start-session`. That gives keyless, IAM-governed, fully audited access
+> with no inbound SSH exposure and no private keys to manage. This instance sits
+> in the public subnet, so its outbound path to the SSM endpoints is the Internet
+> Gateway; a private instance would instead use the NAT gateway or interface VPC
+> endpoints. SSM is deliberately left out here to match the brief.
 
 ## Outputs
 
@@ -158,6 +175,19 @@ make destroy-all      # both, in order
 State is stored in an S3 bucket (versioned, encrypted, native lockfile) created
 by the `bootstrap/` configuration. The backend `key` is
 `hug-tf-week-three/terraform.tfstate`.
+
+### Database password and state (lab tradeoff)
+
+The `db_password` variable is marked `sensitive`, which only redacts it from CLI
+output — Terraform still records the RDS master password in plan and state files.
+Anyone with access to the state effectively has the password. The encrypted,
+private, versioned S3 backend mitigates this, and it is acceptable for this lab.
+
+For a stronger production design, let RDS manage the master password via AWS
+Secrets Manager with `manage_master_user_password = true` on the `aws_db_instance`
+(RDS generates, stores, and rotates the secret, and no password is passed through
+Terraform). That adds Secrets Manager cost and IAM requirements, so it is left
+out here.
 
 ## Deliverables checklist
 

@@ -63,7 +63,10 @@ destroy:
 	$(TERRAFORM) destroy
 
 destroy-backend:
-	@resources=$$(AWS_PROFILE=$(AWS_PROFILE) $(TERRAFORM) state list 2>/dev/null || true); \
+	@resources=$$(AWS_PROFILE=$(AWS_PROFILE) $(TERRAFORM) state list) || { \
+		echo "Could not inspect the main Terraform state. Backend will not be destroyed."; \
+		exit 1; \
+	}; \
 	if [ -n "$$resources" ]; then \
 		echo "Application resources still exist. Run 'make destroy' first."; \
 		exit 1; \
