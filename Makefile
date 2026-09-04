@@ -32,6 +32,7 @@ validate:
 
 plan: fmt validate
 	@set -eu; \
+	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
 	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
 	$(TERRAFORM) plan -out=tfplan
@@ -50,6 +51,7 @@ verify:
 
 destroy:
 	@set -eu; \
+	test -n "$(TF_VAR_db_password)" || { echo "TF_VAR_db_password is not set (add it to .env)"; exit 1; }; \
 	ip=$$(curl -fsS https://checkip.amazonaws.com); \
 	AWS_PROFILE=$(AWS_PROFILE) TF_VAR_ssh_cidr="$$ip/32" TF_VAR_environment="$(ENVIRONMENT)" \
 	$(TERRAFORM) destroy

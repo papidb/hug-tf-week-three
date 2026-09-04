@@ -1,12 +1,20 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
+
+  default_tags {
+    tags = {
+      Project     = "hug-tf-week-three"
+      Environment = var.environment
+      ManagedBy   = "terraform"
+    }
+  }
 }
 
 # vpc
 module "main_aws_vpc" {
   source = "./modules/vpc"
 
-  vpc_cidr    = "10.0.0.0/16"
+  vpc_cidr    = var.vpc_cidr
   environment = var.environment
 }
 
@@ -15,18 +23,20 @@ module "main_aws_vpc" {
 module "networking" {
   source = "./modules/networking"
 
-  vpc_id            = module.main_aws_vpc.vpc_id
-  public_cidr_block = "10.0.0.0/24"
-  environment       = var.environment
+  vpc_id              = module.main_aws_vpc.vpc_id
+  public_cidr_block   = var.public_cidr_block
+  private_cidr_blocks = var.private_cidr_blocks
+  environment         = var.environment
 }
 
 
-# rules
+# security groups
 module "security_group" {
   source = "./modules/security_group"
 
   vpc_id      = module.main_aws_vpc.vpc_id
   ssh_cidr    = var.ssh_cidr
+  db_port     = var.db_port
   environment = var.environment
 }
 
@@ -36,14 +46,82 @@ module "instance" {
   source = "./modules/instance"
 
   public_subnet_id  = module.networking.public_subnet_id
-  security_group_id = module.security_group.security_group_id
-  instance_type     = "t3.micro"
-  instance_name     = "main_instance"
+  security_group_id = module.security_group.compute_security_group_id
+  instance_type     = var.instance_type
+  instance_name     = "${var.environment}-web"
   environment       = var.environment
 }
 
 
+# database
+module "database" {
+  source = "./modules/database"
+
+  private_subnet_ids         = module.networking.private_subnet_ids
+  database_security_group_id = module.security_group.database_security_group_id
+  instance_class             = var.db_instance_class
+  allocated_storage          = var.db_allocated_storage
+  db_password                = var.db_password
+  db_port                    = var.db_port
+  environment                = var.environment
+}
+
+
 # variables
+variable "region" {
+  description = "AWS region to deploy into"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "public_cidr_block" {
+  description = "CIDR block for the public subnet"
+  type        = string
+  default     = "10.0.0.0/24"
+}
+
+variable "private_cidr_blocks" {
+  description = "CIDR blocks for the private subnets (one per AZ, minimum two for RDS)"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "instance_type" {
+  description = "EC2 instance type for the web server"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Allocated storage for the database in GiB"
+  type        = number
+  default     = 20
+}
+
+variable "db_port" {
+  description = "Port the database listens on"
+  type        = number
+  default     = 5432
+}
+
+variable "db_password" {
+  description = "Master password for the database"
+  type        = string
+  sensitive   = true
+}
+
 variable "ssh_cidr" {
   description = "Public IPv4 CIDR permitted to connect over SSH"
   type        = string
@@ -61,5 +139,26 @@ variable "environment" {
 
 # outputs
 output "instance_public_ip" {
-  value = module.instance.instance_public_ip
+  description = "Public IP of the web server"
+  value       = module.instance.instance_public_ip
+}
+
+output "vpc_id" {
+  description = "ID of the VPC"
+  value       = module.main_aws_vpc.vpc_id
+}
+
+output "public_subnet_id" {
+  description = "ID of the public subnet"
+  value       = module.networking.public_subnet_id
+}
+
+output "private_subnet_ids" {
+  description = "IDs of the private subnets"
+  value       = module.networking.private_subnet_ids
+}
+
+output "db_endpoint" {
+  description = "Connection endpoint for the database"
+  value       = module.database.db_endpoint
 }
